@@ -1,0 +1,66 @@
+# 📚 Librairies
+library(data.table)
+library(ggplot2)
+library(corrplot)
+library(pls)
+library(caret)
+library(gridExtra)
+library(FactoMineR)
+library(factoextra)
+library(data.table)
+library(ggplot2)
+library(gridExtra)
+library(corrplot)
+
+# 📥 Lecture des données
+upenn <- fread("UPENN.txt")
+gt <- fread("GT.txt")
+
+# ✅ Création de la variable cible : charge énergétique totale
+upenn$EnergyLoad <- upenn$HeatTotal + upenn$CoolTotal
+gt$EnergyLoad <- gt$HeatTotal + gt$CoolTotal
+
+# ✅ Suppression de colonnes inutiles (ID, HeatTotal, CoolTotal)
+Xupenn <- upenn[, !c("ID", "HeatTotal", "CoolTotal")]
+Xgt <- gt[, !c("ID", "HeatTotal", "CoolTotal")]
+
+# 🔍 Vérification structure
+str(Xupenn)
+summary(Xupenn$EnergyLoad)
+
+# 📊 Histogramme de la variable cible
+ggplot(Xupenn, aes(x = EnergyLoad)) +
+  geom_histogram(bins = 30, fill = "steelblue", color = "white") +
+  labs(title = "Distribution de la charge énergétique - UPENN")
+
+
+---------------------------
+  
+# Quetsion 1 
+  
+upenn$sqrt_EnergyLoad <- sqrt(upenn$EnergyLoad)
+upenn$sqrt_EnergyLoad <- sqrt(upenn$EnergyLoad)
+
+
+# 🔍 4. Visualisation de la distribution des valeurs de Y (originale et transformée)
+p1 <- ggplot(upenn, aes(x = EnergyLoad)) +
+  geom_histogram(bins = 30, fill = "steelblue", color = "white") +
+  labs(title = "Distribution de Y (EnergyLoad)", x = "EnergyLoad", y = "Count")
+
+p2 <- ggplot(upenn, aes(x = sqrt_EnergyLoad)) +
+  geom_histogram(bins = 30, fill = "darkgreen", color = "white") +
+  labs(title = "Distribution de √Y", x = "√EnergyLoad", y = "Count")
+
+grid.arrange(p1, p2, ncol = 2)
+
+
+# 🧼 6. Préparation des matrices pour modélisation
+# On retire les variables inutiles (ID, HeatTotal, CoolTotal)
+Xtrain <- upenn[, !c("ID", "HeatTotal", "CoolTotal", "EnergyLoad")]
+Xtest <- gt[, !c("ID", "HeatTotal", "CoolTotal", "EnergyLoad")]
+
+# Structure des jeux
+str(Xtrain)
+str(Xtest)
+
+
