@@ -1,6 +1,6 @@
 ---
-title: "TD3"
-author: "Florian"
+title: "Rapport"
+author: "Pierre et Florian"
 format:
   html:
     toc: true
@@ -18,7 +18,7 @@ format:
     incremental: true
 ---
 
-# Introduction
+# I. Introduction
 
 ##  Chargement des librairies
 
@@ -26,7 +26,7 @@ format:
 library(tidyverse)
 library(gridExtra)
 library(pls)
-
+library(car)
 ```
 
 
@@ -52,21 +52,21 @@ gt <- gt |>
 ## Suppression de colonnes inutiles (ID, HeatTotal, CoolTotal)
 
 ```{r}
-colonnes_supprimees <- c("ID", "HeatTotal", "CoolTotal")
+colonnes_supprimees <- c("ID", "HeatTotal", "CoolTotal", "HeatJan", "CoolJuly")
 
-Xupenn <- upenn |> 
-  select(-any_of(colonnes_supprimees))
+Upenn_x <- upenn |> 
+  dplyr::select(-any_of(colonnes_supprimees))
 
-Xgt <- gt |> 
-  select(-any_of(colonnes_supprimees))
+Gt_x <- gt |> 
+  dplyr::select(-any_of(colonnes_supprimees))
 ```
 
 
 ## Vérification structure
 
 ```{r}
-str(Xupenn)
-summary(Xupenn$EnergyLoad)
+str(Upenn_x)
+summary(Upenn_x$EnergyLoad)
 ```
 
 
@@ -75,7 +75,7 @@ summary(Xupenn$EnergyLoad)
 ```{r}
 # UPENN
 
-graph_upenn <- Xupenn |> 
+graph_upenn <- Upenn_x |> 
   ggplot() +
   aes(x = EnergyLoad) +
   geom_histogram(bins = 30, fill = "steelblue", color = "white") +
@@ -89,7 +89,7 @@ graph_upenn <- Xupenn |>
 
 # GT
 
-graph_gt <- Xgt |> 
+graph_gt <- Gt_x |> 
   ggplot() +
   aes(x = EnergyLoad) +
   geom_histogram(bins = 30, fill = "steelblue", color = "white") +
@@ -104,29 +104,28 @@ grid.arrange(graph_upenn, graph_gt, ncol = 2)
 ```
 
 
-# Questions
-
-## 1.
-Exploration des données. Pour améliorer la performance des modèles, nous testerons le gain 
-éventuelle d’une transformation de la réponse (Y) en racine carrée, suivant la distribution 
-des erreurs. Séparation des données en jeu d’apprentissage (bâtiments UPENN) et jeu test 
-(bâtiments GT). 
+# II. Exploration des données 
 
 ```{r}
 # UPENN
 
-Xupenn <- Xupenn |> 
-  mutate(sqrt_EnergyLoad = sqrt(EnergyLoad))
+Upenn_x2 <- Upenn_x |> 
+  mutate(sqrt_EnergyLoad = sqrt(EnergyLoad)) |> 
+  dplyr::select(-EnergyLoad)
 
 
 # GT
 
-Xgt <- Xgt |> 
-  mutate(sqrt_EnergyLoad = sqrt(EnergyLoad))
+Gt_x2 <- Gt_x |> 
+  mutate(sqrt_EnergyLoad = sqrt(EnergyLoad)) |> 
+  dplyr::select(-EnergyLoad)
 ```
 
+Upenn_x et Gt_x ont pour variable Y EnergyLoad 
+Upenn_x2 et Gt_x2  ont pour variable Y sqrt_EnergyLoad 
 
-### Visualisation de la distribution des valeurs de Y (originale et transformée)
+
+### Graphique 1 : Visualisation de la distribution des valeurs de Y (originale et transformée)
 
 ```{r}
 # Y originale
@@ -136,7 +135,7 @@ graph_upenn
 
 # Y transformée en racine carrée
 
-graph_sqrt_upenn <- Xupenn |> 
+graph_sqrt_upenn <- Upenn_x2 |> 
   ggplot() +
   aes(x = sqrt_EnergyLoad) +
   geom_histogram(bins = 30, fill = "darkgreen", color = "white") +
@@ -152,62 +151,42 @@ grid.arrange(graph_upenn, graph_sqrt_upenn, ncol = 2)
 ```
 
 normalité ?
+```{r}
+shapiro.test(Upenn_x$EnergyLoad)
+shapiro.test(Upenn_x2$sqrt_EnergyLoad)
+```
+
 
 
 ### Préparation des matrices pour modélisation
 
 ```{r}
-# On retire EnergyLoad
-Train <- Xupenn |> 
-  dplyr::select(-EnergyLoad)
-
-Test <- Xgt |> 
-  dplyr::select(-EnergyLoad)
+# Y : EnergyLoad
+Train <- Upenn_x
+Test <- Gt_x
 ```
+
+```{r}
+# Y : sqrt_EnergyLoad
+Train2 <- Upenn_x2
+Test2 <- Gt_x2
+```
+
 
 
 ### Structure des jeux
 
 ```{r}
-str(Train)
-str(Test)
+str(Train2)
+str(Test2)
 ```
 
 
 
-## 2.
-PCR. Application de la PCR, choix du nombre de composantes et calcul de la performance 
-du modèle sur le jeu d’apprentissage (APP et CV) et le jeu test. 
 
+# III. Régression linéaire multiple
 
-```{r}
-# library(caret) # Surcouche générique : découpage d'échantillon, RLM, PLS, réseaux de neurones
-# library(pls) # Package qui regroupe PCR PLS
-# library(ggplot2)
-# library(gridExtra)
-# library(corrplot)
-# library(FactoMineR) # Méthodes d'analyse des données
-# library(factoextra) # Surcouche pour visualiser les méthodes
-```
-
-```{r}
-source("VIP.R") # attention au répertoire dans lequel cet fct sera placée
-
-```
-
-```{r}
-# nb d'individus
-n <- nrow(Train)
-
-# nb de variables
-p <- ncol(Train) - 1 # nb de predicteurs
-```
-
-```{r}
-# --------------------------------------------------------------------------
-# description
-# --------------------------------------------------------------------------
-```
+## 1. Y : EnergyLoad
 
 ```{r}
 # matrice des correlations
@@ -222,50 +201,424 @@ corrplot::corrplot(
 Structure de corrélations fortes pour plusieurs variables.
 D'où l'intérêt d'utiliser des variables latentes avant d'utiliser la régression multiple.
 
+
 ```{r}
 # distribution des valeurs observes pour les differentes variables
 ggp <- list()
 for (i in 1:ncol(Train)) {
-  ggp[[i]] <- ggplot(Train, aes(x = .data[[names(Train)[i]]])) +
+  ggp[[i]] <- Train |> 
+    ggplot() +
+    aes(x = .data[[names(Train)[i]]]) +
     geom_histogram()
 }
-grid.arrange(grobs = ggp, ncol = 4, nrow = 8)
+grid.arrange(grobs = ggp, ncol = 5, nrow = 6)
 ```
 
-Variables qui correspondent aux prédicteurs Détection de valeurs atypiques
+Variables qui correspondent aux prédicteurs.
+Détection de valeurs atypiques.
 
 
 ```{r}
 # Calcul du vif avec la library car
-library(car)
 
-model.lm <- lm(
-  sqrt_EnergyLoad ~ .,
+modele_lm <- lm(
+  EnergyLoad ~ .,
   data = Train
 )
-summary(model.lm)
-barplot(vif(model.lm), las = 2)
+
+summary(modele_lm)
+
+barplot(vif(modele_lm), las = 2)
+
 abline(h = 5, col = "red")
-vif(model.lm)
+
+vif(modele_lm)
 ```
 
-### modele de regression sur comp. principales (PCR)
+
+
+## 2. Y : sqrt_EnergyLoad
 
 ```{r}
+# matrice des correlations
+corrplot::corrplot(
+  cor(Train2),
+  method = "color", 
+  type = "upper", 
+  order = "FPC"
+)
+```
+
+Structure de corrélations fortes pour plusieurs variables.
+D'où l'intérêt d'utiliser des variables latentes avant d'utiliser la régression multiple.
+
+
+```{r}
+# distribution des valeurs observes pour les differentes variables
+ggp2 <- list()
+for (i in 1:ncol(Train2)) {
+  ggp[[i]] <- Train2 |> 
+    ggplot() +
+    aes(x = .data[[names(Train2)[i]]]) +
+    geom_histogram()
+}
+grid.arrange(grobs = ggp2, ncol = 5, nrow = 6)
+```
+
+Variables qui correspondent aux prédicteurs.
+Détection de valeurs atypiques.
+
+
+```{r}
+# Calcul du vif avec la library car
+
+modele_lm2 <- lm(
+  sqrt_EnergyLoad ~ .,
+  data = Train2
+)
+
+summary(modele_lm2)
+
+barplot(vif(modele_lm2), las = 2)
+
+abline(h = 5, col = "red")
+
+vif(modele_lm2)
+```
+
+
+
+
+
+# IV. Modèle de regression sur composantes principales (PCR)
+
+PCR. Application de la PCR, choix du nombre de composantes et calcul de la performancedu modèle sur le jeu d’apprentissage (APP et CV) et le jeu test. 
+
+
+## 1. Y : EnergyLoad
+
+### 1. Modèle
+
+```{r}
+# nb d'individus
+n <- nrow(Train)
+
+# nb de variables
+p <- ncol(Train) - 1
+```
+
+```{r}
+set.seed(99)
 ## PCR
 pcrtrain <- pcr(
-  sqrt_EnergyLoad ~ ., 
-  data = Train, ncomp = min(n - 1, p), scale = TRUE, validation = "CV")
+  EnergyLoad ~ ., 
+  data = Train, 
+  ncomp = min(n - 1, p),
+  validation = "CV",
+  scale = TRUE)
 # On prend juste l'apprentissage
 ```
 fonctionne comme lm pour la formule
-ncomp : nb de variables latentes (composantes) | scale = TRUE : prédicteurs centrés par défaut
+ncomp : nb de variables latentes (composantes)
+scale = TRUE : prédicteurs centrés par défaut
 Cross-validation CV : découpage en segment
 LOO : cross-validation en enlevant une ligne
 
-
 ```{r}
 summary(pcrtrain)
+```
+
+
+### 2. R2
+
+```{r}
+pls::R2(pcrtrain, estimate = "all")
+
+validationplot(pcrtrain, val.type = "R2", type = "b", estimate = "all")
+legend(
+  "bottomright", 
+  legend = c("Train", "CV"),
+  col = c("black", "red"),
+  pch = c(1, 2),
+  lty = c(1, 2)
+)
+```
+
+
+R2 variance expliquée par le modèle sur tout le jeu de données
+Si on prend toutes les composantes on obtient le R2 du modèle lm
+pcr ou pls toutes composantes revient à un modèle lm
+
+estimate = "all" : tous les résulats associés à un indicateur apprentissage et validation croisé (à la fois sur le train et sur le CV)
+
+
+### 3. RMSE
+```{r}
+# RMSEP : erreur, utile pour choisir le nb de composantes
+pls::RMSEP(pcrtrain)
+validationplot(pcrtrain, type = "b", estimate = "all")
+legend(
+  "topright", 
+  legend = c("CV", "adjCV", "Intercept"),
+  col = c("black", "red", "green"),
+  pch = c(1, 2, 3),
+  lty = c(1, 2, 3)
+)
+```
+
+On ne calcule pas la performance du modèle sur les données sur lesquelles on a appris
+
+
+### 4. Choix du nombre de composantes
+
+```{r}
+ncp <- selectNcomp(pcrtrain, method = "onesigma")
+ncp
+```
+
+
+### 5. Prédiction
+
+```{r}
+# Prédictions sur le trainset
+predtrainpcr <- predict(pcrtrain,type = "response")
+#cbind(pcrtrain$fitted.values, predtrainpcr)
+
+# Prédictions sur le testset
+predtestpcr <- predict(pcrtrain, newdata = Test, type = "response")
+```
+
+
+#### 1. R2
+
+```{r}
+# r2 on testset (1 - la somme des erreurs)
+r2_pcr <- 1 - apply(
+  (Test$EnergyLoad - predtestpcr2[, 1, ])^2,
+  2,
+  sum
+) / sum((Test$EnergyLoad - mean(Test$EnergyLoad))^2)
+
+round(r2_pcr, 4)
+
+# r2 on trainset (1 - la somme des erreurs)
+r2_pcr <- 1 - apply(
+  (Train$EnergyLoad - predtrainpcr2[, 1, ])^2,
+  2,
+  sum
+) / sum((Train$EnergyLoad - mean(Train$EnergyLoad))^2)
+round(r2_pcr, 4)
+```
+
+
+#### 2. RMSEP
+
+```{r}
+# Calcul des erreurs en fonction du nombre de composantes
+rmsep_pcr <- sqrt(apply(
+  (Test$EnergyLoad - predtestpcr[, 1, ])^2,
+  2,
+  mean
+))
+
+# RMSEP de référence (modèle naïf = moyenne de Y_train)
+rmsep0 <- sqrt(mean((Test$EnergyLoad - mean(Train$EnergyLoad))^2))
+
+# On ajoute la baseline à gauche du vecteur
+rmsep_pcr <- c(rmsep0, rmsep_pcr)
+round(rmsep_pcr, 4)
+
+```
+
+
+## 2. Y : sqrt_EnergyLoad
+
+### 1. Modèle
+
+```{r}
+# nb d'individus
+n2 <- nrow(Train2)
+
+# nb de variables
+p2 <- ncol(Train2) - 1
+```
+
+```{r}
+set.seed(99)
+## PCR
+pcrtrain2 <- pcr(
+  sqrt_EnergyLoad ~ ., 
+  data = Train2, 
+  ncomp = min(n2 - 1, p2),
+  validation = "CV",
+  scale = TRUE)
+# On prend juste l'apprentissage
+```
+fonctionne comme lm pour la formule
+ncomp : nb de variables latentes (composantes)
+scale = TRUE : prédicteurs centrés par défaut
+Cross-validation CV : découpage en segment
+LOO : cross-validation en enlevant une ligne
+
+```{r}
+summary(pcrtrain2)
+```
+
+
+### 2. R2
+
+```{r}
+pls::R2(pcrtrain2, estimate = "all")
+
+validationplot(
+  pcrtrain2, 
+  val.type = "R2", 
+  type = "b", 
+  estimate = "all"
+)
+legend(
+  "bottomright", 
+  legend = c("Train", "CV"),
+  col = c("black", "red"),
+  pch = c(1, 2),
+  lty = c(1, 2)
+)
+```
+
+
+R2 variance expliquée par le modèle sur tout le jeu de données
+Si on prend toutes les composantes on obtient le R2 du modèle lm
+pcr ou pls toutes composantes revient à un modèle lm
+
+estimate = "all" : tous les résulats associés à un indicateur apprentissage et validation croisé (à la fois sur le train et sur le CV)
+
+
+### 3. RMSE
+```{r}
+# RMSEP : erreur, utile pour choisir le nb de composantes
+pls::RMSEP(pcrtrain2)
+validationplot(
+  pcrtrain2, 
+  type = "b", 
+  estimate = "all"
+)
+legend(
+  "topright", 
+  legend = c("CV", "adjCV", "Intercept"),
+  col = c("black", "red", "green"),
+  pch = c(1, 2, 3),
+  lty = c(1, 2, 3)
+)
+```
+
+On ne calcule pas la performance du modèle sur les données sur lesquelles on a appris
+
+
+### 4. Choix du nombre de composantes
+
+```{r}
+ncp2 <- selectNcomp(pcrtrain2, method = "onesigma")
+ncp2
+```
+
+
+### 5. Prédiction
+
+```{r}
+# Prédictions sur le trainset
+predtrainpcr2 <- predict(
+  pcrtrain2, 
+  type = "response"
+)
+#cbind(pcrtrain$fitted.values, predtrainpcr)
+
+# Prédictions sur le testset
+predtestpcr2 <- predict(
+  pcrtrain2, 
+  newdata = Test2, 
+  type = "response"
+)
+```
+
+
+#### 1. R2
+
+```{r}
+# r2 on testset (1 - la somme des erreurs)
+r2_pcr2 <- 1 - apply(
+  (Test2$sqrt_EnergyLoad - predtestpcr2[, 1, ])^2,
+  2,
+  sum
+) / sum((Test2$sqrt_EnergyLoad - mean(Test2$sqrt_EnergyLoad))^2)
+
+round(r2_pcr2, 4)
+
+# r2 on trainset (1 - la somme des erreurs)
+r2_pcr2 <- 1 - apply(
+  (Train2$sqrt_EnergyLoad - predtrainpcr2[, 1, ])^2,
+  2,
+  sum
+) / sum((Train2$sqrt_EnergyLoad - mean(Train2$sqrt_EnergyLoad))^2)
+
+round(r2_pcr2, 4)
+```
+
+
+#### 2. RMSEP
+
+```{r}
+# Calcul des erreurs en fonction du nombre de composantes
+rmsep_pcr_2 <- sqrt(apply(
+  (Test2$sqrt_EnergyLoad - predtestpcr2[, 1, ])^2,
+  2,
+  mean
+))
+
+# RMSEP de référence (modèle naïf = moyenne de Y_train)
+rmsep0_2 <- sqrt(
+  mean((Test2$sqrt_EnergyLoad - mean(Train2$sqrt_EnergyLoad))^2)
+)
+
+# On ajoute la baseline à gauche du vecteur
+rmsep_pcr_2 <- c(rmsep0_2, rmsep_pcr_2)
+round(rmsep_pcr_2, 4)
+```
+
+
+
+
+
+# V. Partial Least Squares Regression
+
+```{r}
+## PLSR
+plstrain<-plsr(lCMEDV~.,data=housdata2[trainset, ],ncomp=min(n-1,p),scale=TRUE)    
+# on testset
+predtestpls=predict(plstrain,newdata=housdata2[testset, ], type="response")
+rmsep_pls=sqrt(apply(  (housdata2[testset, 1]-predtestpls[,1,])^2,2,mean))
+rmsep0=sqrt(mean((housdata2[testset, 1]-mean(housdata2[trainset, 1]))^2))
+rmsep_pls=c(rmsep0,rmsep_pls)
+round(rmsep_pls,4)
+```
+
+
+
+```{r}
+
+set.seed(99)
+## PLS
+plsrtrain <- plsr(
+  sqrt_EnergyLoad ~ ., 
+  data = Train, 
+  ncomp = min(n - 1, p),
+  validation = "CV",
+  scale = TRUE)
+# On prend juste l'apprentissage
+```
+
+
+```{r}
+summary(plsrtrain)
 ```
 
 
@@ -273,15 +626,66 @@ summary(pcrtrain)
 # R2 variance expliquée par le modèle sur tout le jeu de données
 # Si on prend toutes les composantes on obtient le R2 du modèle lm
 # pcr ou pls toutes composantes revient à un modèle lm
-R2(pcrtrain, estimate = "all") # tous les résulats associés à un indicateur apprentissage et validation croisé (à la fois sur le train et sur le CV)
+pls::R2(plsrtrain, estimate = "all") # tous les résulats associés à un indicateur apprentissage et validation croisé (à la fois sur le train et sur le CV)
 summary(lm(sqrt_EnergyLoad ~ ., data = Train))
-validationplot(pcrtrain, val.type = "R2", type = "b", estimate = "all")
+validationplot(plsrtrain, val.type = "R2", type = "b")
+
+
 
 # RMSEP : erreur, utile pour choisir le nb de composantes
-pls::RMSEP(pcrtrain)
-validationplot(pcrtrain, type = "b", estimate = "all")
+pls::RMSEP(plsrtrain)
+validationplot(plsrtrain, type = "b", estimate = "all")
 ```
 
 On ne calcule pas la performance du modèle sur les données sur lesquelles on a appris
 
+```{r}
+ncp2 <- selectNcomp(plsrtrain, method = "onesigma")
+ncp2
+```
 
+
+
+## Prédiction
+
+```{r}
+predtrainpls <- predict(plsrtrain,type = "response")
+
+# ✅ Prédictions sur le testset
+predtestpls <- predict(plsrtrain, newdata = Test, type = "response")
+
+
+# ✅ Calcul des erreurs RMSEP en fonction du nombre de composantes
+rmsep_pls <- sqrt(apply(
+  (Test$sqrt_EnergyLoad - predtestpls[, 1, ])^2,
+  2,
+  mean
+))
+dim(predtestpls)
+
+# ✅ RMSEP de référence (moyenne naïve)
+rmsep0_pls <- sqrt(mean((Test$sqrt_EnergyLoad - mean(Train$sqrt_EnergyLoad))^2))
+
+# ✅ On ajoute la baseline
+rmsep_pls <- c(rmsep0_pls, rmsep_pls)
+
+# ✅ Affichage
+round(rmsep_pls, 4)
+
+
+```
+
+
+## R2
+```{r}
+# ✅ R² pour chaque nombre de composantes (PLS)
+r2_pls <- 1 - apply(
+  (Test$sqrt_EnergyLoad - predtestpls[, 1, ])^2,
+  2,
+  sum
+) / sum((Test$sqrt_EnergyLoad - mean(Test$sqrt_EnergyLoad))^2)
+
+# ✅ Affichage
+round(r2_pls, 4)
+
+```
