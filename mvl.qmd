@@ -1,0 +1,287 @@
+---
+title: "TD3"
+author: "Florian"
+format:
+  html:
+    toc: true
+    toc-title: Sommaire
+    code-fold: true
+    echo: true
+    eval: true
+    incremental: true
+  pdf:
+    toc: true
+    toc-title: Sommaire
+    echo: true
+    eval: true
+  revealjs:
+    incremental: true
+---
+
+# Introduction
+
+##  Chargement des librairies
+
+```{r}
+library(tidyverse)
+library(gridExtra)
+library(pls)
+
+```
+
+
+## Lecture des données
+
+```{r}
+upenn <- read_tsv("UPENN.txt")
+gt <- read_tsv("GT.txt")
+```
+
+
+## Création de la variable cible : charge énergétique totale
+
+```{r}
+upenn <- upenn |> 
+  mutate(EnergyLoad = HeatTotal + CoolTotal)
+
+gt <- gt |> 
+   mutate(EnergyLoad = HeatTotal + CoolTotal)
+```
+
+
+## Suppression de colonnes inutiles (ID, HeatTotal, CoolTotal)
+
+```{r}
+colonnes_supprimees <- c("ID", "HeatTotal", "CoolTotal")
+
+Xupenn <- upenn |> 
+  select(-any_of(colonnes_supprimees))
+
+Xgt <- gt |> 
+  select(-any_of(colonnes_supprimees))
+```
+
+
+## Vérification structure
+
+```{r}
+str(Xupenn)
+summary(Xupenn$EnergyLoad)
+```
+
+
+## Histogramme de la variable cible
+
+```{r}
+# UPENN
+
+graph_upenn <- Xupenn |> 
+  ggplot() +
+  aes(x = EnergyLoad) +
+  geom_histogram(bins = 30, fill = "steelblue", color = "white") +
+  labs(
+    title = "Distribution de la charge énergétique - UPENN",
+    x = "Charge énergétique",
+    y = "Fréquence"
+  ) +
+  theme_bw()
+
+
+# GT
+
+graph_gt <- Xgt |> 
+  ggplot() +
+  aes(x = EnergyLoad) +
+  geom_histogram(bins = 30, fill = "steelblue", color = "white") +
+  labs(
+    title = "Distribution de la charge énergétique - GT",
+    x = "Charge énergétique",
+    y = "Fréquence"
+  ) +
+  theme_bw()
+
+grid.arrange(graph_upenn, graph_gt, ncol = 2)
+```
+
+
+# Questions
+
+## 1.
+Exploration des données. Pour améliorer la performance des modèles, nous testerons le gain 
+éventuelle d’une transformation de la réponse (Y) en racine carrée, suivant la distribution 
+des erreurs. Séparation des données en jeu d’apprentissage (bâtiments UPENN) et jeu test 
+(bâtiments GT). 
+
+```{r}
+# UPENN
+
+Xupenn <- Xupenn |> 
+  mutate(sqrt_EnergyLoad = sqrt(EnergyLoad))
+
+
+# GT
+
+Xgt <- Xgt |> 
+  mutate(sqrt_EnergyLoad = sqrt(EnergyLoad))
+```
+
+
+### Visualisation de la distribution des valeurs de Y (originale et transformée)
+
+```{r}
+# Y originale
+
+graph_upenn
+
+
+# Y transformée en racine carrée
+
+graph_sqrt_upenn <- Xupenn |> 
+  ggplot() +
+  aes(x = sqrt_EnergyLoad) +
+  geom_histogram(bins = 30, fill = "darkgreen", color = "white") +
+  labs(
+    title = "Distribution de la charge énergétique après transformation en racine carrée - UPENN",
+    x = "Racine carrée de la charge énergétique",
+    y = "Fréquence"
+  ) +
+  theme_bw()
+
+
+grid.arrange(graph_upenn, graph_sqrt_upenn, ncol = 2)
+```
+
+normalité ?
+
+
+### Préparation des matrices pour modélisation
+
+```{r}
+# On retire EnergyLoad
+Train <- Xupenn |> 
+  dplyr::select(-EnergyLoad)
+
+Test <- Xgt |> 
+  dplyr::select(-EnergyLoad)
+```
+
+
+### Structure des jeux
+
+```{r}
+str(Train)
+str(Test)
+```
+
+
+
+## 2.
+PCR. Application de la PCR, choix du nombre de composantes et calcul de la performance 
+du modèle sur le jeu d’apprentissage (APP et CV) et le jeu test. 
+
+
+```{r}
+# library(caret) # Surcouche générique : découpage d'échantillon, RLM, PLS, réseaux de neurones
+# library(pls) # Package qui regroupe PCR PLS
+# library(ggplot2)
+# library(gridExtra)
+# library(corrplot)
+# library(FactoMineR) # Méthodes d'analyse des données
+# library(factoextra) # Surcouche pour visualiser les méthodes
+```
+
+```{r}
+source("VIP.R") # attention au répertoire dans lequel cet fct sera placée
+
+```
+
+```{r}
+# nb d'individus
+n <- nrow(Train)
+
+# nb de variables
+p <- ncol(Train) - 1 # nb de predicteurs
+```
+
+```{r}
+# --------------------------------------------------------------------------
+# description
+# --------------------------------------------------------------------------
+```
+
+```{r}
+# matrice des correlations
+corrplot::corrplot(
+  cor(Train),
+  method = "color", 
+  type = "upper", 
+  order = "FPC"
+)
+```
+
+Structure de corrélations fortes pour plusieurs variables.
+D'où l'intérêt d'utiliser des variables latentes avant d'utiliser la régression multiple.
+
+```{r}
+# distribution des valeurs observes pour les differentes variables
+ggp <- list()
+for (i in 1:ncol(Train)) {
+  ggp[[i]] <- ggplot(Train, aes(x = .data[[names(Train)[i]]])) +
+    geom_histogram()
+}
+grid.arrange(grobs = ggp, ncol = 4, nrow = 8)
+```
+
+Variables qui correspondent aux prédicteurs Détection de valeurs atypiques
+
+
+```{r}
+# Calcul du vif avec la library car
+library(car)
+
+model.lm <- lm(
+  sqrt_EnergyLoad ~ .,
+  data = Train
+)
+summary(model.lm)
+barplot(vif(model.lm), las = 2)
+abline(h = 5, col = "red")
+vif(model.lm)
+```
+
+### modele de regression sur comp. principales (PCR)
+
+```{r}
+## PCR
+pcrtrain <- pcr(
+  sqrt_EnergyLoad ~ ., 
+  data = Train, ncomp = min(n - 1, p), scale = TRUE, validation = "CV")
+# On prend juste l'apprentissage
+```
+fonctionne comme lm pour la formule
+ncomp : nb de variables latentes (composantes) | scale = TRUE : prédicteurs centrés par défaut
+Cross-validation CV : découpage en segment
+LOO : cross-validation en enlevant une ligne
+
+
+```{r}
+summary(pcrtrain)
+```
+
+
+```{r}
+# R2 variance expliquée par le modèle sur tout le jeu de données
+# Si on prend toutes les composantes on obtient le R2 du modèle lm
+# pcr ou pls toutes composantes revient à un modèle lm
+R2(pcrtrain, estimate = "all") # tous les résulats associés à un indicateur apprentissage et validation croisé (à la fois sur le train et sur le CV)
+summary(lm(sqrt_EnergyLoad ~ ., data = Train))
+validationplot(pcrtrain, val.type = "R2", type = "b", estimate = "all")
+
+# RMSEP : erreur, utile pour choisir le nb de composantes
+pls::RMSEP(pcrtrain)
+validationplot(pcrtrain, type = "b", estimate = "all")
+```
+
+On ne calcule pas la performance du modèle sur les données sur lesquelles on a appris
+
+
