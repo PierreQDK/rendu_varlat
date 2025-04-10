@@ -1,15 +1,47 @@
 ---
-title: "Rapport"
-author: "Pierre et Florian"
-format:
+format: 
   pdf:
-    toc: true
-    toc-title: Sommaire
-    echo: true
-    eval: true
-  revealjs:
-    incremental: true
+    documentclass: article
+    classoption: ["a4paper", "12pt", "fleqn"]
+    geometry: top=2.5cm, bottom=2.5cm, left=2.5cm, right=2.5cm
+    number-sections: true
+    number-depth: 8
+    toc: false  # Désactiver le sommaire automatique
+header-includes: |
+  \usepackage{hyperref}  % Liens cliquables
+  \hypersetup{hidelinks}  % Désactive complètement la mise en couleur des liens
+editor: 
+  markdown: 
+    wrap: 72
 ---
+
+\begin{titlepage}
+    \begin{center}
+        {\LARGE \textbf{Modélisation avec des variables latentes}}\\
+        \vspace{0.5cm}
+        {\Large M1 ECAP -- Année 2024/2025}\\
+        
+        \vspace{8cm}
+        
+        {\Large \textbf{Modélisation dans le cadre de la performance thermique}}\\
+        \vspace{0.5cm}
+        
+        \vspace{9cm}
+        
+        {\large \textbf{CROCHET Florian, QUINTIN DE KERCADIO Pierre}}
+        
+        \vfill
+        
+        {\large \today}
+        
+    \end{center}
+\end{titlepage}
+\begingroup
+\hypersetup{linkcolor=black}
+\tableofcontents
+\endgroup
+
+\newpage
 
 # I. Introduction
 
