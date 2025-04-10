@@ -145,7 +145,6 @@ graph_sqrt_upenn <- Upenn_x2 |>
 grid.arrange(graph_upenn, graph_sqrt_upenn, ncol = 2)
 ```
 
-normalité ?
 ```{r}
 shapiro.test(Upenn_x$EnergyLoad)
 shapiro.test(Upenn_x2$sqrt_EnergyLoad)
