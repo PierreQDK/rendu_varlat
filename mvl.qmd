@@ -2,13 +2,6 @@
 title: "Rapport"
 author: "Pierre et Florian"
 format:
-  html:
-    toc: true
-    toc-title: Sommaire
-    code-fold: true
-    echo: true
-    eval: true
-    incremental: true
   pdf:
     toc: true
     toc-title: Sommaire
@@ -28,6 +21,7 @@ library(gridExtra)
 library(caret)
 library(car)
 library(pls)
+source("VIP.R")
 ```
 
 
@@ -318,7 +312,7 @@ graph_residus_lmtrain <- residus_lmtrain |>
   geom_point() +
   geom_hline(yintercept = 0, linetype = "dashed", color = "red") +
   labs(
-    title = "Graphique des résidus du modèle lmtrain",
+    title = "Graphique des résidus avec Y non transformée",
     x = "Observations", 
     y = "Résidus"
   ) + 
@@ -527,7 +521,7 @@ graph_residus_lmtrain2 <- residus_lmtrain2 |>
   geom_point() +
   geom_hline(yintercept = 0, linetype = "dashed", color = "red") +
   labs(
-    title = "Graphique des résidus du modèle lmtrain",
+    title = "Graphique des résidus avec Y transformée",
     x = "Observations", 
     y = "Résidus"
   ) + 
@@ -754,7 +748,7 @@ pcrtrain <- pcr(
   data = Train, 
   ncomp = min(n - 1, p), # Nombre de variables latentes (composantes)
   validation = "CV",  # Cross-validation CV : découpage en segment
-  scale = TRUE# prédicteurs centrés et réduits par défaut
+  scale = TRUE # prédicteurs centrés et réduits par défaut
 )
 # On prend juste l'apprentissage
 ```
@@ -764,7 +758,48 @@ summary(pcrtrain)
 ```
 
 
-### 2. R2
+### 2. Corrélation
+
+```{r}
+# Score plot des composantes 1 et 2 du modèle
+
+scoreplot(
+  pcrtrain,
+  comp = 1:2, 
+  pch = 19, 
+  main = "Projection des individus sur les composantes PLS 1 et 2"
+)
+
+abline(h = 0, v = 0, col = "grey")
+```
+
+```{r}
+# Corrélations entre variables explicatives + Y et composantes 1 et 2
+
+pls::corrplot(
+  pcrtrain, 
+  comp = 1:2, 
+  plotx = TRUE, 
+  ploty = TRUE, 
+  labels = colnames(Train2),
+  main = "Corrélations (composantes 1 et 2)"
+)
+
+
+# Corrélations entre variables explicatives + Y et composantes 3 et 4
+
+pls::corrplot(
+  pcrtrain, 
+  comp = 3:4, 
+  plotx = TRUE, 
+  ploty = TRUE, 
+  labels = colnames(Train2),
+  main = "Corrélations (composantes 3 et 4)"
+)
+```
+
+
+### 3. R2
 
 ```{r}
 r2_pcr_train_cv <- pls::R2(pcrtrain, estimate = "all")
@@ -783,7 +818,7 @@ R2 : variance expliquée par le modèle sur l'ensemble des données.
 En utilisant toutes les composantes des modèles PCR ou PLS, on obtient le R2 du modèle linéaire (LM).
 
 
-### 3. RMSE
+### 4. RMSE
 
 ```{r}
 # RMSE : erreur, utile pour choisir le nb de composantes
@@ -799,16 +834,15 @@ legend(
 ```
 
 
-### 4. Choix du nombre de composantes
+### 5. Choix du nombre de composantes
 
 ```{r}
-str(123)
 ncp_pcr <- selectNcomp(pcrtrain, method = "onesigma")
 ncp_pcr
 ```
 
 
-### 5. Prédiction sur l'ensemble de données de test
+### 6. Prédiction sur l'ensemble de données de test
 
 ```{r}
 # Prédictions sur le trainset
@@ -863,7 +897,7 @@ round(rmse_pcr_test, 4)
 On ne calcule pas la performance du modèle sur les données utilisées pour l'apprentissage.
 
 
-### 6. Conclusion : Indicateurs de performance R2 et RMSE
+### 7. Conclusion : Indicateurs de performance R2 et RMSE
 
 ```{r}
 cat(
@@ -927,7 +961,48 @@ summary(pcrtrain2)
 ```
 
 
-### 2. R2
+### 2. Corrélation
+
+```{r}
+# Score plot des composantes 1 et 2 du modèle
+
+scoreplot(
+  pcrtrain2,
+  comp = 1:2, 
+  pch = 19, 
+  main = "Projection des individus sur les composantes PLS 1 et 2"
+)
+
+abline(h = 0, v = 0, col = "grey")
+```
+
+```{r}
+# Corrélations entre variables explicatives + Y et composantes 1 et 2
+
+pls::corrplot(
+  pcrtrain2, 
+  comp = 1:2, 
+  plotx = TRUE, 
+  ploty = TRUE, 
+  labels = colnames(Train2),
+  main = "Corrélations (composantes 1 et 2)"
+)
+
+
+# Corrélations entre variables explicatives + Y et composantes 3 et 4
+
+pls::corrplot(
+  pcrtrain, 
+  comp = 3:4, 
+  plotx = TRUE, 
+  ploty = TRUE, 
+  labels = colnames(Train2),
+  main = "Corrélations (composantes 3 et 4)"
+)
+```
+
+
+### 3. R2
 
 ```{r}
 r2_pcr_train_cv2 <- pls::R2(pcrtrain2, estimate = "all")
@@ -951,7 +1026,7 @@ R2 : variance expliquée par le modèle sur l'ensemble des données.
 En utilisant toutes les composantes des modèles PCR ou PLS, on obtient le R2 du modèle linéaire (LM).
 
 
-### 3. RMSE
+### 4. RMSE
 
 ```{r}
 # RMSE : erreur, utile pour choisir le nb de composantes
@@ -971,16 +1046,15 @@ legend(
 ```
 
 
-### 4. Choix du nombre de composantes
+### 5. Choix du nombre de composantes
 
 ```{r}
-str(123)
 ncp_pcr2 <- selectNcomp(pcrtrain2, method = "onesigma")
 ncp_pcr2
 ```
 
 
-### 5. Prédiction sur l'ensemble de données de test
+### 6. Prédiction sur l'ensemble de données de test
 
 ```{r}
 # Prédictions sur le trainset
@@ -1045,7 +1119,7 @@ round(rmse_pcr_test2, 4)
 On ne calcule pas la performance du modèle sur les données utilisées pour l'apprentissage.
 
 
-### 6. Conclusion : Indicateurs de performance R2 et RMSE
+### 7. Conclusion : Indicateurs de performance R2 et RMSE
 
 ```{r}
 cat(
@@ -1115,7 +1189,8 @@ plsrtrain <- plsr(
   data = Train, 
   ncomp = min(n - 1, p), # Nombre de variables latentes (composantes)
   validation = "CV",  # Cross-validation CV : découpage en segment
-  scale = TRUE# prédicteurs centrés et réduits par défaut
+  scale = TRUE, # prédicteurs centrés et réduits par défaut
+  method = "oscorespls" # Pour le VIP
 )
 # On prend juste l'apprentissage
 ```
@@ -1125,7 +1200,48 @@ summary(plsrtrain)
 ```
 
 
-### 2. R2
+### 2. Corrélation
+
+```{r}
+# Score plot des composantes 1 et 2 du modèle
+
+scoreplot(
+  plsrtrain,
+  comp = 1:2, 
+  pch = 19, 
+  main = "Projection des individus sur les composantes PLS 1 et 2"
+)
+
+abline(h = 0, v = 0, col = "grey")
+```
+
+```{r}
+# Corrélations entre variables explicatives + Y et composantes 1 et 2
+
+pls::corrplot(
+  plsrtrain, 
+  comp = 1:2, 
+  plotx = TRUE, 
+  ploty = TRUE, 
+  labels = colnames(Train2),
+  main = "Corrélations (composantes 1 et 2)"
+)
+
+
+# Corrélations entre variables explicatives + Y et composantes 3 et 4
+
+pls::corrplot(
+  plsrtrain, 
+  comp = 3:4, 
+  plotx = TRUE, 
+  ploty = TRUE, 
+  labels = colnames(Train2),
+  main = "Corrélations (composantes 3 et 4)"
+)
+```
+
+
+### 3. R2
 
 ```{r}
 r2_plsr_train_cv <- pls::R2(plsrtrain, estimate = "all")
@@ -1144,7 +1260,7 @@ R2 : variance expliquée par le modèle sur l'ensemble des données.
 En utilisant toutes les composantes des modèles PCR ou PLS, on obtient le R2 du modèle linéaire (LM).
 
 
-### 3. RMSE
+### 4. RMSE
 
 ```{r}
 # RMSE : erreur, utile pour choisir le nb de composantes
@@ -1160,16 +1276,15 @@ legend(
 ```
 
 
-### 4. Choix du nombre de composantes
+### 5. Choix du nombre de composantes
 
 ```{r}
-str(123)
 ncp_plsr <- selectNcomp(plsrtrain, method = "onesigma")
 ncp_plsr
 ```
 
 
-### 5. Prédiction sur l'ensemble de données de test
+### 6. Prédiction sur l'ensemble de données de test
 
 ```{r}
 # Prédictions sur le trainset
@@ -1225,7 +1340,7 @@ round(rmse_plsr_test, 4)
 On ne calcule pas la performance du modèle sur les données utilisées pour l'apprentissage.
 
 
-### 6. Conclusion : Indicateurs de performance R2 et RMSE
+### 7. Conclusion : Indicateurs de performance R2 et RMSE
 
 ```{r}
 cat(
@@ -1279,7 +1394,8 @@ plsrtrain2 <- plsr(
   data = Train2, 
   ncomp = min(n2 - 1, p2), # Nombre de variables latentes (composantes)
   validation = "CV", # Cross-validation CV : découpage en segment
-  scale = TRUE # prédicteurs centrés et réduits par défaut
+  scale = TRUE, # prédicteurs centrés et réduits par défaut
+  method = "oscorespls" # Pour le VIP
 )
 # On prend juste l'apprentissage
 ```
@@ -1289,7 +1405,48 @@ summary(plsrtrain2)
 ```
 
 
-### 2. R2
+### 2. Corrélation
+
+```{r}
+# Score plot des composantes 1 et 2 du modèle
+
+scoreplot(
+  plsrtrain2, 
+  comp = 1:2, 
+  pch = 19, 
+  main = "Projection des individus sur les composantes PLS 1 et 2"
+)
+
+abline(h = 0, v = 0, col = "grey")
+```
+
+```{r}
+# Corrélations entre variables explicatives + Y et composantes 1 et 2
+
+pls::corrplot(
+  plsrtrain2, 
+  comp = 1:2, 
+  plotx = TRUE, 
+  ploty = TRUE, 
+  labels = colnames(Train2),
+  main = "Corrélations (composantes 1 et 2)"
+)
+
+
+# Corrélations entre variables explicatives + Y et composantes 3 et 4
+
+pls::corrplot(
+  plsrtrain2, 
+  comp = 3:4, 
+  plotx = TRUE, 
+  ploty = TRUE, 
+  labels = colnames(Train2),
+  main = "Corrélations (composantes 3 et 4)"
+)
+```
+
+
+### 3. R2
 
 ```{r}
 r2_plsr_train_cv2 <- pls::R2(plsrtrain2, estimate = "all")
@@ -1313,7 +1470,7 @@ R2 : variance expliquée par le modèle sur l'ensemble des données.
 En utilisant toutes les composantes des modèles PCR ou PLS, on obtient le R2 du modèle linéaire (LM).
 
 
-### 3. RMSE
+### 4. RMSE
 
 ```{r}
 # RMSE : erreur, utile pour choisir le nb de composantes
@@ -1333,16 +1490,15 @@ legend(
 ```
 
 
-### 4. Choix du nombre de composantes
+### 5. Choix du nombre de composantes
 
 ```{r}
-str(123)
 ncp_plsr2 <- selectNcomp(plsrtrain2, method = "onesigma")
 ncp_plsr2
 ```
 
 
-### 5. Prédiction sur l'ensemble de données de test
+### 6. Prédiction sur l'ensemble de données de test
 
 ```{r}
 # Prédictions sur le trainset
@@ -1411,7 +1567,7 @@ round(rmse_plsr_test2, 4)
 On ne calcule pas la performance du modèle sur les données utilisées pour l'apprentissage.
 
 
-### 6. Conclusion : Indicateurs de performance R2 et RMSE
+### 7. Conclusion : Indicateurs de performance R2 et RMSE
 
 ```{r}
 cat(
@@ -1456,10 +1612,13 @@ resultats_plsr
 
 
 
+
 # VI. Comparaison des modèles et interprétation
 
 Comparaison des modèles et interprétation. Discussion de l’efficacité de la PLS par rapport à la PCR en présence de variables corrélées. Choix d’un modèle et l’interpréter en identifiant les variables les plus influentes sur la consommation énergétique. 
 
+
+## 1. Résultats
 
 ```{r}
 resultats <- bind_rows(resultats_lm, resultats_pcr, resultats_plsr)
@@ -1467,3 +1626,65 @@ View(resultats)
 ```
 
 
+## 2. VIP 
+
+```{r}
+# Calcul des scores VIP pour le bon modèle PLS
+vip <- VIP(plsrtrain2)[ncp_plsr2, ]
+
+# Affichage propre du barplot
+barplot(
+  vip,
+  las = 2,                # orientation verticale
+  ylab = "VIP", 
+  cex.names = 0.8,        
+  main = "Scores VIP des variables explicatives",
+  col = ifelse(vip >= 1, "skyblue", "lightgrey")  # seuil visuel
+)
+
+# Lignes de seuils
+
+abline(h = 1, col = "red", lwd = 2)
+abline(h = 0.9, col = "red", lty = 2)
+```
+
+
+## 3. Corrélation
+
+```{r}
+# Score plot des composantes 1 et 2 du modèle PLS final
+
+scoreplot(
+  plsrtrain2, 
+  comp = 1:2, 
+  pch = 19, 
+  main = "Projection des individus sur les composantes PLS 1 et 2"
+)
+
+abline(h = 0, v = 0, col = "grey")
+```
+
+```{r}
+# Corrélations entre variables explicatives + Y et composantes 1 et 2
+
+pls::corrplot(
+  plsrtrain2, 
+  comp = 1:2, 
+  plotx = TRUE, 
+  ploty = TRUE, 
+  labels = colnames(Train2),
+  main = "Corrélations (composantes 1 et 2)"
+)
+
+
+# Corrélations entre variables explicatives + Y et composantes 3 et 4
+
+pls::corrplot(
+  plsrtrain2, 
+  comp = 3:4, 
+  plotx = TRUE, 
+  ploty = TRUE, 
+  labels = colnames(Train2),
+  main = "Corrélations (composantes 3 et 4)"
+)
+```
