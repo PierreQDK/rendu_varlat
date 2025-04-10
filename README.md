@@ -44,9 +44,10 @@ Une **transformation en racine carrée** a été appliquée pour stabiliser la v
 ## 👥 Auteurs
 
 Pierre QUINTIN de KERCADIO
+
 Florian CROCHET
 
 
-📚 Référence
+## 📚 Référence
 
 Tian W., de Wilde P., & Kalz D. (2015). Thermal simulation of university buildings in different climates. Building Simulation Conference.
