@@ -1,7 +1,6 @@
 # Modélisation de la performance thermique des bâtiments universitaires
 
-Projet réalisé dans le cadre du Master 1 Économétrie et Statistiques – parcours Économétrie Appliquée (IAE Nantes).  
-Encadré par l'équipe pédagogique de l’UE “Modèles à variables latentes (PCR / PLS)”.
+Projet réalisé dans le cadre du Master 1 Économétrie et Statistiques – parcours Économétrie Appliquée (IAE Nantes). 
 
 ## 📌 Objectif
 
