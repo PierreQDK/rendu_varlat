@@ -35,7 +35,7 @@ Une **transformation en racine carrée** a été appliquée pour stabiliser la v
    - RMSE (erreur quadratique moyenne)
 4. **Interprétation du modèle retenu via scores VIP**
 
-📌 Les modèles sont évalués sur :
+## 📌 Les modèles sont évalués sur :
 - Un jeu d’apprentissage (**UPENN**) avec validation croisée (k=10)
 - Un jeu test (**GT**) pour évaluer la généralisation
 
