@@ -131,6 +131,9 @@ grid.arrange(graph_upenn, graph_gt, ncol = 2)
 ```
 
 
+
+
+
 # II. Exploration des données 
 
 ```{r}
@@ -152,7 +155,9 @@ Upenn_x et Gt_x ont pour variable Y EnergyLoad
 Upenn_x2 et Gt_x2  ont pour variable Y sqrt_EnergyLoad 
 
 
-### Graphique 1 : Visualisation de la distribution des valeurs de Y (originale et transformée)
+
+
+## Visualisation de la distribution des valeurs de Y (originale et transformée)
 
 ```{r}
 # Y originale
@@ -184,7 +189,8 @@ shapiro.test(Upenn_x2$sqrt_EnergyLoad)
 
 
 
-### Préparation des matrices pour modélisation
+
+## Préparation des matrices pour modélisation
 
 ```{r}
 # Y : EnergyLoad
@@ -199,7 +205,9 @@ Test2 <- Gt_x2
 ```
 
 
-### Structure des jeux
+
+
+## Structure des jeux
 
 ```{r}
 str(Train2)
@@ -207,9 +215,11 @@ str(Test2)
 ```
 
 
-### Distributions
 
-#### 1. Y : EnergyLoad
+
+## Distributions
+
+### 1. Y : EnergyLoad
 
 ```{r}
 # distribution des valeurs observées pour les differentes variables
@@ -227,13 +237,14 @@ Variables qui correspondent aux prédicteurs.
 Détection de valeurs atypiques.
 
 
-#### 2. Y : sqrt_EnergyLoad
+
+### 2. Y : sqrt_EnergyLoad
 
 ```{r}
 # distribution des valeurs observées pour les differentes variables
 ggp2 <- list()
 for (i in 1:ncol(Train2)) {
-  ggp[[i]] <- Train2 |> 
+  ggp2[[i]] <- Train2 |> 
     ggplot() +
     aes(x = .data[[names(Train2)[i]]]) +
     geom_histogram()
@@ -246,9 +257,10 @@ Détection de valeurs atypiques.
 
 
 
-### Corrélations
 
-#### 1. Y : EnergyLoad
+## Corrélations
+
+### 1. Y : EnergyLoad
 
 ```{r}
 # matrice des correlations
@@ -264,7 +276,8 @@ Structure de corrélations fortes pour plusieurs variables.
 D'où l'intérêt d'utiliser des variables latentes avant d'utiliser la régression multiple.
 
 
-#### 2. Y : sqrt_EnergyLoad
+
+### 2. Y : sqrt_EnergyLoad
 
 ```{r}
 # matrice des correlations
@@ -282,7 +295,8 @@ D'où l'intérêt d'utiliser des variables latentes avant d'utiliser la régress
 
 
 
-# III. Régression linéaire multiple
+
+# III. Modèle de régression linéaire multiple
 
 ## 1. Y : EnergyLoad
 
@@ -412,6 +426,7 @@ rmse_lm_cv <- resultats$RMSE
 ```
 
 
+
 ### 2. Prédiction sur l'ensemble de données de test
 
 ```{r}
@@ -459,6 +474,7 @@ round(rmse_lm_test, 4)
 On ne calcule pas la performance du modèle sur les données utilisées pour l'apprentissage.
 
 
+
 ### 3. Conclusion : Indicateurs de performance R2 et RMSE
 
 ```{r}
@@ -490,6 +506,7 @@ resultats_lm1 <- tibble(
 
 View(resultats_lm1)
 ```
+
 
 
 
@@ -621,6 +638,7 @@ rmse_lm_cv2 <- resultats2$RMSE
 ```
 
 
+
 ### 2. Prédiction sur l'ensemble de données de test
 
 ```{r}
@@ -631,6 +649,7 @@ predtrainlm2 <- predict(lmtrain2, type = "response")
 # Prédictions sur le testset
 predtestlm2 <- predict(lmtrain2, newdata = Test2, type = "response")
 ```
+
 
 #### 1. R2
 
@@ -668,6 +687,7 @@ round(rmse_lm_test2, 4)
 On ne calcule pas la performance du modèle sur les données utilisées pour l'apprentissage.
 
 
+
 ### 3. Conclusion : Indicateurs de performance R2 et RMSE
 
 ```{r}
@@ -702,6 +722,7 @@ View(resultats_lm2)
 
 
 
+
 ## 3. Conclusion
 
 ### 1. Distribution des erreurs
@@ -724,6 +745,7 @@ graph_residus
 ```
 
 
+
 ### 2. VIF
 
 ```{r}
@@ -744,6 +766,7 @@ graph_vif
 ```
 
 
+
 ### 3. Indicateurs de performance
 
 ```{r}
@@ -755,7 +778,7 @@ resultats_lm
 
 
 
-# IV. Modèle de regression sur composantes principales (PCR)
+# IV. Modèle de régression sur composantes principales (PCR)
 
 PCR. Application de la PCR, choix du nombre de composantes et calcul de la performancedu modèle sur le jeu d’apprentissage (APP et CV) et le jeu test. 
 
@@ -787,6 +810,7 @@ pcrtrain <- pcr(
 ```{r}
 summary(pcrtrain)
 ```
+
 
 
 ### 2. Corrélation
@@ -830,6 +854,7 @@ pls::corrplot(
 ```
 
 
+
 ### 3. R2
 
 ```{r}
@@ -849,20 +874,27 @@ R2 : variance expliquée par le modèle sur l'ensemble des données.
 En utilisant toutes les composantes des modèles PCR ou PLS, on obtient le R2 du modèle linéaire (LM).
 
 
+
 ### 4. RMSE
 
 ```{r}
 # RMSE : erreur, utile pour choisir le nb de composantes
 rmse_pcr_train_cv <- pls::RMSEP(pcrtrain, estimate = "all")
-validationplot(pcrtrain, type = "b", estimate = "all")
+
+validationplot(
+  pcrtrain, 
+  type = "b", 
+  estimate = "all"
+)
 legend(
   "topright", 
-  legend = c("CV", "adjCV", "Intercept"),
+  legend = c("train", "CV", "adjCV"),
   col = c("black", "red", "green"),
   pch = c(1, 2, 3),
   lty = c(1, 2, 3)
 )
 ```
+
 
 
 ### 5. Choix du nombre de composantes
@@ -871,6 +903,7 @@ legend(
 ncp_pcr <- selectNcomp(pcrtrain, method = "onesigma")
 ncp_pcr
 ```
+
 
 
 ### 6. Prédiction sur l'ensemble de données de test
@@ -928,6 +961,7 @@ round(rmse_pcr_test, 4)
 On ne calcule pas la performance du modèle sur les données utilisées pour l'apprentissage.
 
 
+
 ### 7. Conclusion : Indicateurs de performance R2 et RMSE
 
 ```{r}
@@ -962,6 +996,7 @@ View(resultats_pcr1)
 
 
 
+
 ## 2. Y : sqrt_EnergyLoad
 
 ### 1. Modèle
@@ -990,6 +1025,7 @@ pcrtrain2 <- pcr(
 ```{r}
 summary(pcrtrain2)
 ```
+
 
 
 ### 2. Corrélation
@@ -1033,6 +1069,7 @@ pls::corrplot(
 ```
 
 
+
 ### 3. R2
 
 ```{r}
@@ -1057,11 +1094,13 @@ R2 : variance expliquée par le modèle sur l'ensemble des données.
 En utilisant toutes les composantes des modèles PCR ou PLS, on obtient le R2 du modèle linéaire (LM).
 
 
+
 ### 4. RMSE
 
 ```{r}
 # RMSE : erreur, utile pour choisir le nb de composantes
 rmse_pcr_train_cv2 <- pls::RMSEP(pcrtrain2, estimate = "all")
+
 validationplot(
   pcrtrain2, 
   type = "b", 
@@ -1069,12 +1108,13 @@ validationplot(
 )
 legend(
   "topright", 
-  legend = c("CV", "adjCV", "Intercept"),
+  legend = c("train", "CV", "adjCV"),
   col = c("black", "red", "green"),
   pch = c(1, 2, 3),
   lty = c(1, 2, 3)
 )
 ```
+
 
 
 ### 5. Choix du nombre de composantes
@@ -1083,6 +1123,7 @@ legend(
 ncp_pcr2 <- selectNcomp(pcrtrain2, method = "onesigma")
 ncp_pcr2
 ```
+
 
 
 ### 6. Prédiction sur l'ensemble de données de test
@@ -1150,6 +1191,7 @@ round(rmse_pcr_test2, 4)
 On ne calcule pas la performance du modèle sur les données utilisées pour l'apprentissage.
 
 
+
 ### 7. Conclusion : Indicateurs de performance R2 et RMSE
 
 ```{r}
@@ -1184,21 +1226,21 @@ View(resultats_pcr2)
 
 
 
+
 ## 3. Conclusion
 
 ```{r}
 resultats_pcr <- bind_rows(resultats_pcr1, resultats_pcr2)
-resultats_pcr
+View(resultats_pcr)
 ```
 
 
 
 
 
-# V. Partial Least Squares Regression
+# V. Modèle de régression des moindres carrés partiels (PLS)
 
-PLS. Application de la PLS, choix du nombre de composantes et calcul de la performance 
-du modèle sur le jeu d’apprentissage (APP et CV) et le jeu test. 
+PLS. Application de la PLS, choix du nombre de composantes et calcul de la performance du modèle sur le jeu d’apprentissage (APP et CV) et le jeu test. 
 
 ## 1. Y : EnergyLoad
 
@@ -1229,6 +1271,7 @@ plsrtrain <- plsr(
 ```{r}
 summary(plsrtrain)
 ```
+
 
 
 ### 2. Corrélation
@@ -1272,6 +1315,7 @@ pls::corrplot(
 ```
 
 
+
 ### 3. R2
 
 ```{r}
@@ -1291,20 +1335,27 @@ R2 : variance expliquée par le modèle sur l'ensemble des données.
 En utilisant toutes les composantes des modèles PCR ou PLS, on obtient le R2 du modèle linéaire (LM).
 
 
+
 ### 4. RMSE
 
 ```{r}
 # RMSE : erreur, utile pour choisir le nb de composantes
 rmse_plsr_train_cv <- pls::RMSEP(plsrtrain, estimate = "all")
-validationplot(plsrtrain, type = "b", estimate = "all")
+
+validationplot(
+  plsrtrain, 
+  type = "b", 
+  estimate = "all"
+)
 legend(
   "topright", 
-  legend = c("CV", "adjCV", "Intercept"),
+  legend = c("train", "CV", "adjCV"),
   col = c("black", "red", "green"),
   pch = c(1, 2, 3),
   lty = c(1, 2, 3)
 )
 ```
+
 
 
 ### 5. Choix du nombre de composantes
@@ -1313,6 +1364,7 @@ legend(
 ncp_plsr <- selectNcomp(plsrtrain, method = "onesigma")
 ncp_plsr
 ```
+
 
 
 ### 6. Prédiction sur l'ensemble de données de test
@@ -1371,6 +1423,7 @@ round(rmse_plsr_test, 4)
 On ne calcule pas la performance du modèle sur les données utilisées pour l'apprentissage.
 
 
+
 ### 7. Conclusion : Indicateurs de performance R2 et RMSE
 
 ```{r}
@@ -1405,6 +1458,7 @@ View(resultats_plsr1)
 
 
 
+
 ## 2. Y : sqrt_EnergyLoad
 
 ### 1. Modèle
@@ -1434,6 +1488,7 @@ plsrtrain2 <- plsr(
 ```{r}
 summary(plsrtrain2)
 ```
+
 
 
 ### 2. Corrélation
@@ -1477,6 +1532,7 @@ pls::corrplot(
 ```
 
 
+
 ### 3. R2
 
 ```{r}
@@ -1501,11 +1557,13 @@ R2 : variance expliquée par le modèle sur l'ensemble des données.
 En utilisant toutes les composantes des modèles PCR ou PLS, on obtient le R2 du modèle linéaire (LM).
 
 
+
 ### 4. RMSE
 
 ```{r}
 # RMSE : erreur, utile pour choisir le nb de composantes
 rmse_plsr_train_cv2 <- pls::RMSEP(plsrtrain2, estimate = "all")
+
 validationplot(
   plsrtrain2, 
   type = "b", 
@@ -1513,12 +1571,13 @@ validationplot(
 )
 legend(
   "topright", 
-  legend = c("CV", "adjCV", "Intercept"),
+  legend = c("train", "CV", "adjCV"),
   col = c("black", "red", "green"),
   pch = c(1, 2, 3),
   lty = c(1, 2, 3)
 )
 ```
+
 
 
 ### 5. Choix du nombre de composantes
@@ -1527,6 +1586,7 @@ legend(
 ncp_plsr2 <- selectNcomp(plsrtrain2, method = "onesigma")
 ncp_plsr2
 ```
+
 
 
 ### 6. Prédiction sur l'ensemble de données de test
@@ -1598,6 +1658,7 @@ round(rmse_plsr_test2, 4)
 On ne calcule pas la performance du modèle sur les données utilisées pour l'apprentissage.
 
 
+
 ### 7. Conclusion : Indicateurs de performance R2 et RMSE
 
 ```{r}
@@ -1632,13 +1693,13 @@ View(resultats_plsr2)
 
 
 
+
 ## 3. Conclusion
 
 ```{r}
 resultats_plsr <- bind_rows(resultats_plsr1, resultats_plsr2)
-resultats_plsr
+View(resultats_plsr)
 ```
-
 
 
 
@@ -1656,66 +1717,49 @@ resultats <- bind_rows(resultats_lm, resultats_pcr, resultats_plsr)
 View(resultats)
 ```
 
+Les modèles MCO de type LM ne sont pas appropriés en raison de la multicolinéarité entre les variables explicatives, ce qui compromet la validité des résultats.
+
+
+
 
 ## 2. VIP 
 
 ```{r}
-# Calcul des scores VIP pour le bon modèle PLS
+# Calcul des scores VIP pour le meilleur modèle PLS
+
 vip <- VIP(plsrtrain2)[ncp_plsr2, ]
 
-# Affichage propre du barplot
-barplot(
-  vip,
-  las = 2,                # orientation verticale
-  ylab = "VIP", 
-  cex.names = 0.8,        
-  main = "Scores VIP des variables explicatives",
-  col = ifelse(vip >= 1, "skyblue", "lightgrey")  # seuil visuel
+
+# Préparation des données
+
+df_vip <- tibble(
+  Variable = names(vip),
+  VIP = as.numeric(vip)
 )
 
-# Lignes de seuils
 
-abline(h = 1, col = "red", lwd = 2)
-abline(h = 0.9, col = "red", lty = 2)
+# Graphique
+
+df_vip |> 
+  ggplot() +
+  aes(
+    x = reorder(Variable, VIP), 
+    y = VIP, 
+    fill = VIP >= 1
+  ) +
+  geom_bar(stat = "identity") +
+  coord_flip() +
+  scale_fill_manual(values = c("lightgrey", "skyblue"), guide = FALSE) +
+  geom_hline(yintercept = 1, color = "red", linewidth = 1) +
+  geom_hline(yintercept = 0.9, color = "red", linetype = "dashed") +
+  labs(
+    title = "Scores VIP des variables explicatives",
+    x = NULL,
+    y = "VIP"
+  ) +
+  theme_bw(base_size = 12)
 ```
 
 
-## 3. Corrélation
-
-```{r}
-# Score plot des composantes 1 et 2 du modèle PLS final
-
-scoreplot(
-  plsrtrain2, 
-  comp = 1:2, 
-  pch = 19, 
-  main = "Projection des individus sur les composantes PLS 1 et 2"
-)
-
-abline(h = 0, v = 0, col = "grey")
-```
-
-```{r}
-# Corrélations entre variables explicatives + Y et composantes 1 et 2
-
-pls::corrplot(
-  plsrtrain2, 
-  comp = 1:2, 
-  plotx = TRUE, 
-  ploty = TRUE, 
-  labels = colnames(Train2),
-  main = "Corrélations (composantes 1 et 2)"
-)
 
 
-# Corrélations entre variables explicatives + Y et composantes 3 et 4
-
-pls::corrplot(
-  plsrtrain2, 
-  comp = 3:4, 
-  plotx = TRUE, 
-  ploty = TRUE, 
-  labels = colnames(Train2),
-  main = "Corrélations (composantes 3 et 4)"
-)
-```
